@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-class messagingViewModel : ViewModel() {
+class notificationViewModel : ViewModel() {
 
     val auth = Firebase.auth
 

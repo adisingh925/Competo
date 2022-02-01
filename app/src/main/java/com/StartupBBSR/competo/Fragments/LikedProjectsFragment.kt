@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
@@ -20,7 +19,7 @@ import com.StartupBBSR.competo.Models.ProjectModel
 import com.StartupBBSR.competo.Models.RequestModel
 import com.StartupBBSR.competo.R
 import com.StartupBBSR.competo.Utils.Constant
-import com.StartupBBSR.competo.ViewModel.messagingViewModel
+import com.StartupBBSR.competo.ViewModel.notificationViewModel
 import com.StartupBBSR.competo.databinding.FragmentLikedProjectsBinding
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -47,7 +46,7 @@ class LikedProjectsFragment : Fragment() {
     private lateinit var adapter: ProjectAdapter
 
     //messaging viewmodel
-    lateinit var messagingViewModel: messagingViewModel
+    lateinit var notificationViewModel: notificationViewModel
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -72,7 +71,7 @@ class LikedProjectsFragment : Fragment() {
 
         likedProjectsRef = firestoreDB.collection(constant.project).document(userID).collection(constant.likedProjects)
 
-        messagingViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.messagingViewModel::class.java)
+        notificationViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.notificationViewModel::class.java)
 
         loadProjects()
 
@@ -213,7 +212,7 @@ class LikedProjectsFragment : Fragment() {
                         sendMessageBottomDialog.dismiss();
 
                         //send notification
-                        messagingViewModel.notification(organizerID,userID,requestMessage)
+                        notificationViewModel.notification(organizerID,userID,requestMessage)
                     }
                     .addOnFailureListener {
                         Toast.makeText(context, "Error sending request", Toast.LENGTH_SHORT).show()

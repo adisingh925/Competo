@@ -45,8 +45,8 @@ interface teamosDao {
     @Query("select * from userData")
     fun readAllDataForUser() : LiveData<List<userOfflineModel>>
 
-    @Query("delete from userData")
-    fun deleteAllDataForUser()
+    @Delete
+    fun deleteAllDataForUser(data : userOfflineModel)
 
     @Query("delete from userData")
     fun deleteAllUsers()
