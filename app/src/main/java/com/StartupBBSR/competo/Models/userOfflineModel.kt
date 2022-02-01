@@ -15,6 +15,6 @@ data class userOfflineModel(
     @ColumnInfo(name = "linkedin") val userLinkedin : String,
     @ColumnInfo(name = "role") val userRole : String,
     @ColumnInfo(name = "organiserRole") val organiserRole : String,
-    @ColumnInfo(name = "chips") val userChips : List<String>,
-    @ColumnInfo(name = "events") val userEvents : List<String>,
+    //@ColumnInfo(name = "chips") val userChips : List<String>,
+    //@ColumnInfo(name = "events") val userEvents : List<String>,
 )
