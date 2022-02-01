@@ -8,10 +8,11 @@ import androidx.room.PrimaryKey
 data class chatOfflineModel(
     @PrimaryKey val id : String,
     @ColumnInfo(name = "senderId") val senderId : String,
+    @ColumnInfo(name = "senderName") val senderName : String,
     @ColumnInfo(name = "receiverId") val receiverId : String,
     @ColumnInfo(name = "msg") val msg : String,
     @ColumnInfo(name = "receiveTime") val receiveTime : String,
     @ColumnInfo(name = "sendTime") val sendTime : String,
     @ColumnInfo(name = "isSeen") val isSeen : Boolean,
-    @ColumnInfo(name = "needsResend") val needsResend : Boolean,
+    @ColumnInfo(name = "fcmSendStatus") val fcmSendStatus : Boolean,
 )
