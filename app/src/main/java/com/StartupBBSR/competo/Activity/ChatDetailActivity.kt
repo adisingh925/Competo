@@ -1,514 +1,435 @@
-package com.StartupBBSR.competo.Activity;
+package com.StartupBBSR.competo.Activity
 
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.AbsListView;
-import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity
+import com.StartupBBSR.competo.Utils.Constant
+import com.StartupBBSR.competo.Models.MessageModel
+import com.google.firebase.auth.FirebaseAuth
+import com.StartupBBSR.competo.Adapters.NewChatAdapter
+import androidx.recyclerview.widget.RecyclerView
+import android.os.Bundle
+import android.content.SharedPreferences
+import android.widget.Toast
+import java.lang.Void
+import android.util.Log
+import java.lang.Exception
+import com.bumptech.glide.Glide
+import android.net.Uri
+import android.view.View
+import com.StartupBBSR.competo.R
+import androidx.recyclerview.widget.LinearLayoutManager
+import android.widget.AbsListView
+import com.StartupBBSR.competo.databinding.ActivityChatDetailBinding
+import com.google.android.gms.tasks.Task
+import com.google.firebase.firestore.*
+import com.google.firebase.firestore.EventListener
+import com.squareup.okhttp.MediaType
+import com.squareup.okhttp.OkHttpClient
+import com.squareup.okhttp.Request
+import com.squareup.okhttp.RequestBody
+import java.lang.Runnable
+import java.io.IOException
+import java.lang.Thread
+import java.util.*
 
-import com.StartupBBSR.competo.Adapters.NewChatAdapter;
-import com.StartupBBSR.competo.Models.MessageModel;
-import com.StartupBBSR.competo.R;
-import com.StartupBBSR.competo.Utils.Constant;
-import com.StartupBBSR.competo.databinding.ActivityChatDetailBinding;
-import com.bumptech.glide.Glide;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.MetadataChanges;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
-
-import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-public class ChatDetailActivity extends AppCompatActivity {
-
-    private ActivityChatDetailBinding binding;
-
-    private Constant constant;
-    private MessageModel messageModel;
-
-    private FirebaseAuth firebaseAuth;
-    private FirebaseFirestore firestoreDB;
-
-    private String status = "";
-
-    private NewChatAdapter newChatAdapter;
-    private RecyclerView recyclerView;
-    private List<MessageModel> mMessage;
-
-    private final int limit = 13;
-    private DocumentSnapshot lastVisible;
-
-    private boolean isScrolling = false;
-    private boolean isLastItemReached = false;
-
-    private ListenerRegistration isSeenlistenerRegistration1, isSeenlistenerRegistration2;
-    private EventListener<QuerySnapshot> eventListener1, eventListener2;
-
-    private String senderID, receiverID, receiverName, receiverPhoto;
-
-    private CollectionReference collectionReference;
-    private DocumentReference receiverRef, userRef, userMessageNumberRef;
-    private CollectionReference seenRef1, seenRef2;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-
-        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", MODE_PRIVATE);
-        SharedPreferences.Editor editor = pref.edit();
-
-        super.onCreate(savedInstanceState);
-        binding = ActivityChatDetailBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        firebaseAuth = FirebaseAuth.getInstance();
-        firestoreDB = FirebaseFirestore.getInstance();
-
-        constant = new Constant();
-
-        senderID = firebaseAuth.getUid();
-        receiverID = getIntent().getStringExtra("receiverID");
-        receiverName = getIntent().getStringExtra("receiverName");
-        receiverPhoto = getIntent().getStringExtra("receiverPhoto");
-
-        updateReceiverInfo(receiverName, receiverPhoto);
-
-        userMessageNumberRef = firestoreDB.collection(constant.getMessageNumber()).document(senderID);
-
-        userRef = firestoreDB.collection(constant.getUsers()).document(senderID);
-        receiverRef = firestoreDB.collection(constant.getUsers()).document(receiverID);
-        getReceiverUpdates();
-
-        status("Online");
-
-        collectionReference = firestoreDB.collection(constant.getChats())
-                .document(senderID)
-                .collection(constant.getMessages())
-                .document(receiverID)
-                .collection(constant.getMessages());
-
-        binding.btnBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (binding.sendMessageProgressBar.getVisibility() != View.VISIBLE) {
-                    finish();
-                } else {
-                    Toast.makeText(ChatDetailActivity.this, "Please wait", Toast.LENGTH_SHORT).show();
-                }
+class ChatDetailActivity : AppCompatActivity() {
+    private var binding: ActivityChatDetailBinding? = null
+    private var constant: Constant? = null
+    private var messageModel: MessageModel? = null
+    private var firebaseAuth: FirebaseAuth? = null
+    private var firestoreDB: FirebaseFirestore? = null
+    private var status: String? = ""
+    private var newChatAdapter: NewChatAdapter? = null
+    private var recyclerView: RecyclerView? = null
+    private var mMessage: MutableList<MessageModel?>? = null
+    private val limit = 13
+    private var lastVisible: DocumentSnapshot? = null
+    private var isScrolling = false
+    private var isLastItemReached = false
+    private var isSeenlistenerRegistration1: ListenerRegistration? = null
+    private var isSeenlistenerRegistration2: ListenerRegistration? = null
+    private var eventListener1: EventListener<QuerySnapshot>? = null
+    private var eventListener2: EventListener<QuerySnapshot>? = null
+    private var senderID: String? = null
+    private var receiverID: String? = null
+    private var receiverName: String? = null
+    private var receiverPhoto: String? = null
+    private var collectionReference: CollectionReference? = null
+    private var receiverRef: DocumentReference? = null
+    private var userRef: DocumentReference? = null
+    private var userMessageNumberRef: DocumentReference? = null
+    private var seenRef1: CollectionReference? = null
+    private var seenRef2: CollectionReference? = null
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val pref = applicationContext.getSharedPreferences("MyPref", MODE_PRIVATE)
+        val editor = pref.edit()
+        super.onCreate(savedInstanceState)
+        binding = ActivityChatDetailBinding.inflate(
+            layoutInflater
+        )
+        setContentView(binding!!.root)
+        firebaseAuth = FirebaseAuth.getInstance()
+        firestoreDB = FirebaseFirestore.getInstance()
+        constant = Constant()
+        senderID = firebaseAuth!!.uid
+        receiverID = intent.getStringExtra("receiverID")
+        receiverName = intent.getStringExtra("receiverName")
+        receiverPhoto = intent.getStringExtra("receiverPhoto")
+        updateReceiverInfo(receiverName, receiverPhoto)
+        userMessageNumberRef =
+            firestoreDB!!.collection(constant!!.messageNumber).document(senderID!!)
+        userRef = firestoreDB!!.collection(constant!!.users).document(senderID!!)
+        receiverRef = firestoreDB!!.collection(constant!!.users).document(receiverID!!)
+        receiverUpdates
+        status("Online")
+        collectionReference = firestoreDB!!.collection(constant!!.chats)
+            .document(senderID!!)
+            .collection(constant!!.messages)
+            .document(receiverID!!)
+            .collection(constant!!.messages)
+        binding!!.btnBack.setOnClickListener {
+            if (binding!!.sendMessageProgressBar.visibility != View.VISIBLE) {
+                finish()
+            } else {
+                Toast.makeText(this@ChatDetailActivity, "Please wait", Toast.LENGTH_SHORT).show()
             }
-        });
+        }
+        binding!!.btnSendChat.setOnClickListener {
+            if (binding!!.etMessage.text.toString().trim { it <= ' ' } != "") {
+                val message = binding!!.etMessage.text.toString().trim { it <= ' ' }
+                val timestamp = Date().time
+                messageModel = MessageModel(senderID, receiverID, message, timestamp)
+                messageModel!!.seen = false
+                binding!!.etMessage.setText("")
 
-        binding.btnSendChat.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                if (!binding.etMessage.getText().toString().trim().equals("")) {
-
-                    String message = binding.etMessage.getText().toString().trim();
-                    Long timestamp = new Date().getTime();
-
-                    messageModel = new MessageModel(senderID, receiverID, message, timestamp);
-                    messageModel.setSeen(false);
-
-                    binding.etMessage.setText("");
-                    
 //                    Show progress bar
-                    binding.btnSendChat.setVisibility(View.INVISIBLE);
-                    binding.sendMessageProgressBar.setVisibility(View.VISIBLE);
-
-                    firestoreDB.collection(constant.getChats())
-                            .document(senderID)
-                            .collection(constant.getMessages())
-                            .document(receiverID)
-                            .collection(constant.getMessages())
-                            .add(messageModel)
-                            .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-
-
-                                @Override
-                                public void onSuccess(DocumentReference documentReference) {
-                                    firestoreDB.collection(constant.getChats())
-                                            .document(receiverID)
-                                            .collection(constant.getMessages())
-                                            .document(senderID)
-                                            .collection(constant.getMessages())
-                                            .add(messageModel)
-                                            .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                                                @Override
-                                                public void onSuccess(DocumentReference documentReference) {
-//                                                    Message send
-
-                                                    binding.btnSendChat.setVisibility(View.VISIBLE);
-                                                    binding.sendMessageProgressBar.setVisibility(View.GONE);
+                binding!!.btnSendChat.visibility = View.INVISIBLE
+                binding!!.sendMessageProgressBar.visibility = View.VISIBLE
+                firestoreDB!!.collection(constant!!.chats)
+                    .document(senderID!!)
+                    .collection(constant!!.messages)
+                    .document(receiverID!!)
+                    .collection(constant!!.messages)
+                    .add(messageModel!!)
+                    .addOnSuccessListener {
+                        firestoreDB!!.collection(constant!!.chats)
+                            .document(receiverID!!)
+                            .collection(constant!!.messages)
+                            .document(senderID!!)
+                            .collection(constant!!.messages)
+                            .add(messageModel!!)
+                            .addOnSuccessListener { //                                                    Message send
+                                binding!!.btnSendChat.visibility = View.VISIBLE
+                                binding!!.sendMessageProgressBar.visibility = View.GONE
 
 //                                                    Updating timestamp of users for sorting
-                                                    firestoreDB.collection(constant.getUsers())
-                                                            .document(senderID)
-                                                            .update("time", timestamp)
-                                                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                                @Override
-                                                                public void onComplete(@NonNull Task<Void> task) {
-                                                                    firestoreDB.collection(constant.getUsers())
-                                                                            .document(receiverID)
-                                                                            .update("time", timestamp);
-
-                                                                }
-                                                            });
-
-                                                    firestoreDB.collection("token").document(receiverID).get().addOnCompleteListener(task -> {
-                                                        if (task.isSuccessful()) {
-                                                            DocumentSnapshot document = task.getResult();
-                                                            if (document.exists()) {
-                                                                Log.d("data", "DocumentSnapshot data: " + document.getString("token"));
-                                                                firestoreDB.collection("Users").document(senderID).get().addOnCompleteListener(task3 -> {
-                                                                    if (task3.isSuccessful()) {
-                                                                        DocumentSnapshot document3 = task3.getResult();
-                                                                        if (document3.exists()) {
-                                                                            Log.d("data", "DocumentSnapshot data: " + document3.getString("Name"));
-                                                                            sendfcm(document.getString("token"),message,document3.getString("Name"));
-                                                                        }
-                                                                    }
-                                                                });
-                                                            } else {
-                                                                Log.d("data", "No such document");
+                                firestoreDB!!.collection(constant!!.users)
+                                    .document(senderID!!)
+                                    .update("time", timestamp)
+                                    .addOnCompleteListener {
+                                        firestoreDB!!.collection(constant!!.users)
+                                            .document(receiverID!!)
+                                            .update("time", timestamp)
+                                    }
+                                firestoreDB!!.collection("token").document(receiverID!!).get()
+                                    .addOnCompleteListener { task: Task<DocumentSnapshot> ->
+                                        if (task.isSuccessful) {
+                                            val document = task.result
+                                            if (document.exists()) {
+                                                Log.d(
+                                                    "data",
+                                                    "DocumentSnapshot data: " + document.getString("token")
+                                                )
+                                                firestoreDB!!.collection("Users")
+                                                    .document(senderID!!).get()
+                                                    .addOnCompleteListener { task3: Task<DocumentSnapshot> ->
+                                                        if (task3.isSuccessful) {
+                                                            val document3 = task3.result
+                                                            if (document3.exists()) {
+                                                                Log.d(
+                                                                    "data",
+                                                                    "DocumentSnapshot data: " + document3.getString(
+                                                                        "Name"
+                                                                    )
+                                                                )
+                                                                sendfcm(
+                                                                    document.getString("token"),
+                                                                    message,
+                                                                    document3.getString("Name")
+                                                                )
                                                             }
-                                                        } else {
-                                                            Log.d("data", "get failed with ", task.getException());
                                                         }
-                                                    });
-
-                                                }
-                                            }).addOnFailureListener(new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull @NotNull Exception e) {
-                                            Toast.makeText(ChatDetailActivity.this, "Could not deliver message", Toast.LENGTH_SHORT).show();
-                                            binding.btnSendChat.setVisibility(View.VISIBLE);
-                                            binding.sendMessageProgressBar.setVisibility(View.GONE);
+                                                    }
+                                            } else {
+                                                Log.d("data", "No such document")
+                                            }
+                                        } else {
+                                            Log.d("data", "get failed with ", task.exception)
                                         }
-                                    });
-                                }
-                            }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull @NotNull Exception e) {
-                            Toast.makeText(ChatDetailActivity.this, "Could not send message", Toast.LENGTH_SHORT).show();
-                            binding.btnSendChat.setVisibility(View.VISIBLE);
-                            binding.sendMessageProgressBar.setVisibility(View.GONE);
-                        }
-                    });
-                }
+                                    }
+                            }.addOnFailureListener {
+                                Toast.makeText(
+                                    this@ChatDetailActivity,
+                                    "Could not deliver message",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                binding!!.btnSendChat.visibility = View.VISIBLE
+                                binding!!.sendMessageProgressBar.visibility = View.GONE
+                            }
+                    }.addOnFailureListener {
+                        Toast.makeText(
+                            this@ChatDetailActivity,
+                            "Could not send message",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        binding!!.btnSendChat.visibility = View.VISIBLE
+                        binding!!.sendMessageProgressBar.visibility = View.GONE
+                    }
             }
-        });
-
-//        For read receipts
-        seenRef1 = firestoreDB.collection(constant.getChats())
-                .document(senderID)
-                .collection(constant.getMessages())
-                .document(receiverID)
-                .collection(constant.getMessages());
-
-        seenRef2 = firestoreDB.collection(constant.getChats())
-                .document(receiverID)
-                .collection(constant.getMessages())
-                .document(senderID)
-                .collection(constant.getMessages());
-
-        seenMessage(senderID, receiverID);
-
-        if (isSeenlistenerRegistration1 == null && isSeenlistenerRegistration2 == null) {
-            isSeenlistenerRegistration1 = seenRef1.addSnapshotListener(eventListener1);
-            isSeenlistenerRegistration2 = seenRef2.addSnapshotListener(eventListener2);
         }
 
-        initNewRecycler();
-
+//        For read receipts
+        seenRef1 = firestoreDB!!.collection(constant!!.chats)
+            .document(senderID!!)
+            .collection(constant!!.messages)
+            .document(receiverID!!)
+            .collection(constant!!.messages)
+        seenRef2 = firestoreDB!!.collection(constant!!.chats)
+            .document(receiverID!!)
+            .collection(constant!!.messages)
+            .document(senderID!!)
+            .collection(constant!!.messages)
+        seenMessage(senderID, receiverID)
+        if (isSeenlistenerRegistration1 == null && isSeenlistenerRegistration2 == null) {
+            isSeenlistenerRegistration1 = seenRef1!!.addSnapshotListener(eventListener1!!)
+            isSeenlistenerRegistration2 = seenRef2!!.addSnapshotListener(eventListener2!!)
+        }
+        initNewRecycler()
     }
 
-    private void updateReceiverInfo(String receiverName, String receiverPhoto) {
-
-        binding.chatUserName.setText(receiverName);
-
-        if (receiverPhoto != null)
-            Glide.with(getApplicationContext())
-                    .load(Uri.parse(receiverPhoto))
-                    .into(binding.chatUserImage);
-        else
-            Glide.with(getApplicationContext())
-                    .load(R.drawable.ic_baseline_person_24)
-                    .into(binding.chatUserImage);
+    private fun updateReceiverInfo(receiverName: String?, receiverPhoto: String?) {
+        binding!!.chatUserName.text = receiverName
+        if (receiverPhoto != null) Glide.with(applicationContext)
+            .load(Uri.parse(receiverPhoto))
+            .into(binding!!.chatUserImage) else Glide.with(applicationContext)
+            .load(R.drawable.ic_baseline_person_24)
+            .into(binding!!.chatUserImage)
     }
 
-    private void getReceiverUpdates() {
-        receiverRef.addSnapshotListener(new EventListener<DocumentSnapshot>() {
-            @Override
-            public void onEvent(@Nullable @org.jetbrains.annotations.Nullable DocumentSnapshot value, @Nullable @org.jetbrains.annotations.Nullable FirebaseFirestoreException error) {
+    private val receiverUpdates: Unit
+        private get() {
+            receiverRef!!.addSnapshotListener(EventListener { value, error ->
                 if (error != null) {
-                    return;
+                    return@EventListener
                 }
+                val receiverName = value!!.getString("Name")
+                val receiverPhoto = value.getString("Photo")
+                updateReceiverInfo(receiverName, receiverPhoto)
+            })
+        }
 
-                String receiverName = value.getString("Name");
-                String receiverPhoto = value.getString("Photo");
-
-                updateReceiverInfo(receiverName, receiverPhoto);
-            }
-        });
+    private fun initNewRecycler() {
+        recyclerView = binding!!.chatRecyclerView
+        recyclerView!!.setHasFixedSize(true)
+        val linearLayoutManager = LinearLayoutManager(applicationContext)
+        linearLayoutManager.stackFromEnd = false
+        linearLayoutManager.reverseLayout = true
+        recyclerView!!.layoutManager = linearLayoutManager
     }
 
-    private void initNewRecycler() {
-        recyclerView = binding.chatRecyclerView;
-        recyclerView.setHasFixedSize(true);
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
-        linearLayoutManager.setStackFromEnd(false);
-        linearLayoutManager.setReverseLayout(true);
-        recyclerView.setLayoutManager(linearLayoutManager);
-    }
-
-    private void readMessage(String senderID, String receiverID) {
-        mMessage = new ArrayList<>();
-
-        collectionReference.orderBy("timestamp", Query.Direction.DESCENDING).limit(limit)
-                .get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
-            @Override
-            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
-                mMessage.clear();
-
-                for (QueryDocumentSnapshot snapshot : queryDocumentSnapshots) {
-                    MessageModel model = snapshot.toObject(MessageModel.class);
-                    if (model.getReceiverID().equals(senderID) && model.getSenderID().equals(receiverID)
-                            || model.getReceiverID().equals(receiverID) && model.getSenderID().equals(senderID)) {
-                        mMessage.add(model);
+    private fun readMessage(senderID: String?, receiverID: String?) {
+        mMessage = ArrayList()
+        collectionReference!!.orderBy("timestamp", Query.Direction.DESCENDING).limit(limit.toLong())
+            .get().addOnSuccessListener { queryDocumentSnapshots ->
+                (mMessage as ArrayList<MessageModel?>).clear()
+                for (snapshot in queryDocumentSnapshots) {
+                    val model = snapshot.toObject(MessageModel::class.java)
+                    if (model.receiverID == senderID && model.senderID == receiverID
+                        || model.receiverID == receiverID && model.senderID == senderID
+                    ) {
+                        (mMessage as ArrayList<MessageModel?>).add(model)
                     }
-
-                    newChatAdapter = new NewChatAdapter(ChatDetailActivity.this, mMessage);
-                    recyclerView.setAdapter(newChatAdapter);
+                    newChatAdapter = NewChatAdapter(this@ChatDetailActivity, mMessage)
+                    recyclerView!!.adapter = newChatAdapter
 
 //                    Pagination
-                    lastVisible = queryDocumentSnapshots.getDocuments().get(queryDocumentSnapshots.size() - 1);
-                    Log.d("paginate", "onSuccess-Last Visible: " + (queryDocumentSnapshots.size() - 1));
-
-                    RecyclerView.OnScrollListener onScrollListener = new RecyclerView.OnScrollListener() {
-                        @Override
-                        public void onScrollStateChanged(@NonNull @NotNull RecyclerView recyclerView, int newState) {
-                            super.onScrollStateChanged(recyclerView, newState);
-                            if (newState == AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) {
-                                isScrolling = true;
+                    lastVisible =
+                        queryDocumentSnapshots.documents[queryDocumentSnapshots.size() - 1]
+                    Log.d(
+                        "paginate",
+                        "onSuccess-Last Visible: " + (queryDocumentSnapshots.size() - 1)
+                    )
+                    val onScrollListener: RecyclerView.OnScrollListener =
+                        object : RecyclerView.OnScrollListener() {
+                            override fun onScrollStateChanged(
+                                recyclerView: RecyclerView,
+                                newState: Int
+                            ) {
+                                super.onScrollStateChanged(recyclerView, newState)
+                                if (newState == AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) {
+                                    isScrolling = true
+                                }
                             }
-                        }
 
-                        @Override
-                        public void onScrolled(@NonNull @NotNull RecyclerView recyclerView, int dx, int dy) {
-                            super.onScrolled(recyclerView, dx, dy);
-
-                            LinearLayoutManager linearLayoutManager = ((LinearLayoutManager) recyclerView.getLayoutManager());
-                            int firstVisibleItemPosition = linearLayoutManager.findFirstVisibleItemPosition();
-                            int visibleItemCount = linearLayoutManager.getChildCount();
-                            int totalItemCount = linearLayoutManager.getItemCount();
-
-                            if (isScrolling && (firstVisibleItemPosition + visibleItemCount == totalItemCount) && !isLastItemReached) {
-                                isScrolling = false;
-                                Query nextQuery = collectionReference.orderBy("timestamp", Query.Direction.DESCENDING).startAfter(lastVisible).limit(limit);
-                                nextQuery.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<QuerySnapshot> t) {
-                                        if (t.isSuccessful()) {
-                                            for (DocumentSnapshot d : t.getResult()) {
-                                                MessageModel messageModel = d.toObject(MessageModel.class);
-                                                mMessage.add(messageModel);
+                            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                                super.onScrolled(recyclerView, dx, dy)
+                                val linearLayoutManager =
+                                    recyclerView.layoutManager as LinearLayoutManager?
+                                val firstVisibleItemPosition =
+                                    linearLayoutManager!!.findFirstVisibleItemPosition()
+                                val visibleItemCount = linearLayoutManager.childCount
+                                val totalItemCount = linearLayoutManager.itemCount
+                                if (isScrolling && firstVisibleItemPosition + visibleItemCount == totalItemCount && !isLastItemReached) {
+                                    isScrolling = false
+                                    val nextQuery = collectionReference!!.orderBy(
+                                        "timestamp",
+                                        Query.Direction.DESCENDING
+                                    ).startAfter(lastVisible).limit(limit.toLong())
+                                    nextQuery.get().addOnCompleteListener { t ->
+                                        if (t.isSuccessful) {
+                                            for (d in t.result) {
+                                                val messageModel = d.toObject(
+                                                    MessageModel::class.java
+                                                )
+                                                (mMessage as ArrayList<MessageModel?>).add(messageModel)
                                             }
-
-                                            newChatAdapter.notifyDataSetChanged();
-
-                                            if (t.getResult().size() - 1 >= 0) {
-                                                lastVisible = t.getResult().getDocuments().get(t.getResult().size() - 1);
+                                            newChatAdapter!!.notifyDataSetChanged()
+                                            if (t.result.size() - 1 >= 0) {
+                                                lastVisible =
+                                                    t.result.documents[t.result.size() - 1]
                                             }
-
-                                            if (t.getResult().size() < limit) {
-                                                isLastItemReached = true;
+                                            if (t.result.size() < limit) {
+                                                isLastItemReached = true
                                             }
                                         }
                                     }
-                                });
-                            }
-                        }
-                    };
-
-                    recyclerView.addOnScrollListener(onScrollListener);
-                }
-            }
-        });
-    }
-
-    private void seenMessage(String senderID, String receiverID) {
-
-        eventListener1 = new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                if (error != null) {
-                    Log.w("error", "Listen failed.", error);
-                    return;
-                }
-
-                for (DocumentSnapshot snapshot : value) {
-                    MessageModel messageModel = snapshot.toObject(MessageModel.class);
-                    if (messageModel.getReceiverID().equals(senderID) && messageModel.getSenderID().equals(receiverID)) {
-                        snapshot.getReference().update("seen", true);
-                    }
-                }
-            }
-        };
-
-        eventListener2 = new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                if (error != null) {
-                    Log.w("error", "Listen failed.", error);
-                    return;
-                }
-
-                for (DocumentSnapshot snapshot : value) {
-                    MessageModel messageModel = snapshot.toObject(MessageModel.class);
-                    if (messageModel.getReceiverID().equals(senderID) && messageModel.getSenderID().equals(receiverID)) {
-                        snapshot.getReference().update("seen", true);
-                    }
-                }
-            }
-        };
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-        collectionReference.addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                if (error != null) {
-                    Log.e("error", "onEvent: ", error);
-                    return;
-                }
-
-                readMessage(senderID, receiverID);
-            }
-        });
-
-        receiverRef.addSnapshotListener(MetadataChanges.INCLUDE, new EventListener<DocumentSnapshot>() {
-            @Override
-            public void onEvent(@Nullable DocumentSnapshot value, @Nullable FirebaseFirestoreException error) {
-                if (error != null) {
-                    Log.w("error", "listen:error", error);
-                    return;
-                }
-
-                receiverRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                            DocumentSnapshot snapshot = task.getResult();
-                            if (snapshot.contains("status")) {
-                                status = snapshot.getString("status");
-                                if (status.equals("Online"))
-                                    binding.chatUserStatus.setVisibility(View.VISIBLE);
-                                else {
-                                    binding.chatUserStatus.setVisibility(View.GONE);
                                 }
                             }
                         }
+                    recyclerView!!.addOnScrollListener(onScrollListener)
+                }
+            }
+    }
+
+    private fun seenMessage(senderID: String?, receiverID: String?) {
+        eventListener1 = EventListener { value, error ->
+            if (error != null) {
+                Log.w("error", "Listen failed.", error)
+                return@EventListener
+            }
+            for (snapshot in value!!) {
+                val messageModel = snapshot.toObject(
+                    MessageModel::class.java
+                )
+                if (messageModel.receiverID == senderID && messageModel.senderID == receiverID) {
+                    snapshot.reference.update("seen", true)
+                }
+            }
+        }
+        eventListener2 = EventListener { value, error ->
+            if (error != null) {
+                Log.w("error", "Listen failed.", error)
+                return@EventListener
+            }
+            for (snapshot in value!!) {
+                val messageModel = snapshot.toObject(
+                    MessageModel::class.java
+                )
+                if (messageModel.receiverID == senderID && messageModel.senderID == receiverID) {
+                    snapshot.reference.update("seen", true)
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        collectionReference!!.addSnapshotListener(EventListener { value, error ->
+            if (error != null) {
+                Log.e("error", "onEvent: ", error)
+                return@EventListener
+            }
+            readMessage(senderID, receiverID)
+        })
+        receiverRef!!.addSnapshotListener(MetadataChanges.INCLUDE, EventListener { value, error ->
+            if (error != null) {
+                Log.w("error", "listen:error", error)
+                return@EventListener
+            }
+            receiverRef!!.get().addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val snapshot = task.result
+                    if (snapshot.contains("status")) {
+                        status = snapshot.getString("status")
+                        if (status == "Online") binding!!.chatUserStatus.visibility =
+                            View.VISIBLE else {
+                            binding!!.chatUserStatus.visibility = View.GONE
+                        }
                     }
-                });
+                }
             }
-        });
-
-        isSeenlistenerRegistration1 = seenRef1.addSnapshotListener(eventListener1);
-        isSeenlistenerRegistration2 = seenRef2.addSnapshotListener(eventListener2);
+        })
+        isSeenlistenerRegistration1 = seenRef1!!.addSnapshotListener(eventListener1!!)
+        isSeenlistenerRegistration2 = seenRef2!!.addSnapshotListener(eventListener2!!)
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-
+    public override fun onStop() {
+        super.onStop()
         if (isSeenlistenerRegistration1 != null) {
-            isSeenlistenerRegistration1.remove();
+            isSeenlistenerRegistration1!!.remove()
         }
-
         if (isSeenlistenerRegistration2 != null) {
-            isSeenlistenerRegistration2.remove();
+            isSeenlistenerRegistration2!!.remove()
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        status("Offline");
-        Log.d("status", "onPauseChat: Offline");
+    override fun onPause() {
+        super.onPause()
+        status("Offline")
+        Log.d("status", "onPauseChat: Offline")
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        status("Online");
-        Log.d("status", "onResumeChat: Online");
+    override fun onResume() {
+        super.onResume()
+        status("Online")
+        Log.d("status", "onResumeChat: Online")
     }
 
-    private void status(String status) {
-        userRef.update("status", status);
+    private fun status(status: String) {
+        userRef!!.update("status", status)
     }
 
-    public void sendfcm(String token, String message, String name)
-    {
-        Runnable runnable = () -> {
-            OkHttpClient client = new OkHttpClient();
-            MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-            RequestBody body = RequestBody.create(JSON,"{\n" +
-                    "    \"data\" : {\n" +
-                    "      \"id\" : \""+senderID+"\",\n" +
-                    "      \"category\" : \"chat\",\n" +
-                    "      \"title\":\""+name+"\",\n" +
-                    "      \"body\":\""+message+"\"\n" +
-                    "    },\n" +
-                    "    \"to\":\""+token+"\"\n" +
-                    "}");
-            Request request = new Request.Builder()
-                    .url("https://fcm.googleapis.com/fcm/send")
-                    .post(body)
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "key=AAAABmOW__8:APA91bFEiWxr4rRQa3M_5n-w-5XDjLnQ9nf2IgAs1r0ppfwgTLZoGgOJmRAF1pt59hHqdMZ74AmAx1lkk0HaCuLwUCsHi_M_BWEZAGwkXyp-57YJk_pGmGWwJKNEU_bnJLl7bv7VDPzy")
-                    .build();
+    fun sendfcm(token: String?, message: String, name: String?) {
+        val runnable = Runnable {
+            val client = OkHttpClient()
+            val JSON = MediaType.parse("application/json; charset=utf-8")
+            val body = RequestBody.create(
+                JSON, """{
+    "data" : {
+      "id" : "$senderID",
+      "category" : "chat",
+      "title":"$name",
+      "body":"$message"
+    },
+    "to":"$token"
+}"""
+            )
+            val request = Request.Builder()
+                .url("https://fcm.googleapis.com/fcm/send")
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader(
+                    "Authorization",
+                    "key=AAAABmOW__8:APA91bFEiWxr4rRQa3M_5n-w-5XDjLnQ9nf2IgAs1r0ppfwgTLZoGgOJmRAF1pt59hHqdMZ74AmAx1lkk0HaCuLwUCsHi_M_BWEZAGwkXyp-57YJk_pGmGWwJKNEU_bnJLl7bv7VDPzy"
+                )
+                .build()
             try {
-                Response response = client.newCall(request).execute();
-                Log.d("response",response.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
+                val response = client.newCall(request).execute()
+                Log.d("response", response.toString())
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
-        };
-        Thread thread = new Thread(runnable);
-        thread.start();
+        }
+        val thread = Thread(runnable)
+        thread.start()
     }
 }

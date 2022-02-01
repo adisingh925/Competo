@@ -24,7 +24,7 @@ import com.StartupBBSR.competo.Models.RequestModel
 import com.StartupBBSR.competo.R
 import com.StartupBBSR.competo.R.layout.project_bottom_dialog
 import com.StartupBBSR.competo.Utils.Constant
-import com.StartupBBSR.competo.ViewModel.notificationViewModel
+import com.StartupBBSR.competo.ViewModel.fcmViewModel
 import com.StartupBBSR.competo.databinding.FragmentProjectMainBinding
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -59,7 +59,7 @@ class ProjectMainFragment : Fragment() {
     private var isFabOpen: Boolean = false
 
     //messaging viewmodel
-    lateinit var notificationViewModel: notificationViewModel
+    lateinit var fcmViewModel: fcmViewModel
 
     private val rotation = 180
 
@@ -90,7 +90,7 @@ class ProjectMainFragment : Fragment() {
 
         projectList = ArrayList()
 
-        notificationViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.notificationViewModel::class.java)
+        fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
 
         //messagingViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2")
 
@@ -274,7 +274,7 @@ class ProjectMainFragment : Fragment() {
                         sendMessageBottomDialog.dismiss();
 
                         //send message request
-                        notificationViewModel.notification(organizerID,userID,requestMessage)
+                        fcmViewModel.notification(organizerID,userID,requestMessage)
                     }
                     .addOnFailureListener {
                         Toast.makeText(context, "Error sending request", Toast.LENGTH_SHORT).show()

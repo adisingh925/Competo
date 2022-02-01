@@ -19,7 +19,7 @@ import com.StartupBBSR.competo.Models.ProjectModel
 import com.StartupBBSR.competo.Models.RequestModel
 import com.StartupBBSR.competo.R
 import com.StartupBBSR.competo.Utils.Constant
-import com.StartupBBSR.competo.ViewModel.notificationViewModel
+import com.StartupBBSR.competo.ViewModel.fcmViewModel
 import com.StartupBBSR.competo.databinding.FragmentLikedProjectsBinding
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -46,7 +46,7 @@ class LikedProjectsFragment : Fragment() {
     private lateinit var adapter: ProjectAdapter
 
     //messaging viewmodel
-    lateinit var notificationViewModel: notificationViewModel
+    lateinit var fcmViewModel: fcmViewModel
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -71,7 +71,7 @@ class LikedProjectsFragment : Fragment() {
 
         likedProjectsRef = firestoreDB.collection(constant.project).document(userID).collection(constant.likedProjects)
 
-        notificationViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.notificationViewModel::class.java)
+        fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
 
         loadProjects()
 
@@ -212,7 +212,7 @@ class LikedProjectsFragment : Fragment() {
                         sendMessageBottomDialog.dismiss();
 
                         //send notification
-                        notificationViewModel.notification(organizerID,userID,requestMessage)
+                        fcmViewModel.notification(organizerID,userID,requestMessage)
                     }
                     .addOnFailureListener {
                         Toast.makeText(context, "Error sending request", Toast.LENGTH_SHORT).show()
