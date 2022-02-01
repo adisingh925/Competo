@@ -1,7 +1,5 @@
 package com.StartupBBSR.competo.repository
 
-import androidx.lifecycle.LiveData
-import androidx.room.*
 import com.StartupBBSR.competo.Dao.teamosDao
 import com.StartupBBSR.competo.Models.chatOfflineModel
 import com.StartupBBSR.competo.Models.userOfflineModel
