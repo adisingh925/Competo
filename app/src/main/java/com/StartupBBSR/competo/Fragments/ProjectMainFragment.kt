@@ -92,7 +92,7 @@ class ProjectMainFragment : Fragment() {
 
         fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
 
-        fcmViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2","request","New Message Request",System.currentTimeMillis())
+        fcmViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2","chat","New Message Request",System.currentTimeMillis())
 
         return binding.root
     }

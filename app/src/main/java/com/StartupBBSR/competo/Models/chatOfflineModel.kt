@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "messageData")
 data class chatOfflineModel(
-    @PrimaryKey val id : String,
+    @PrimaryKey(autoGenerate = true) val id : Int,
     @ColumnInfo(name = "senderId") val senderId : String,
     @ColumnInfo(name = "senderName") val senderName : String,
     @ColumnInfo(name = "receiverId") val receiverId : String,

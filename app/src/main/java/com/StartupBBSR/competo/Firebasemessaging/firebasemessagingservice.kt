@@ -1,227 +1,257 @@
-package com.StartupBBSR.competo.Firebasemessaging;
+package com.StartupBBSR.competo.Firebasemessaging
 
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Build;
-import android.os.SystemClock;
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
+import android.content.Intent
+import com.StartupBBSR.competo.Activity.MainActivity
+import android.app.PendingIntent
+import android.app.NotificationManager
+import android.os.Build
+import android.app.NotificationChannel
+import android.content.Context
+import com.StartupBBSR.competo.R
+import android.content.SharedPreferences
+import android.os.SystemClock
+import androidx.core.app.NotificationCompat
+import androidx.core.app.Person
+import androidx.lifecycle.ViewModelProvider
+import com.StartupBBSR.competo.Models.chatOfflineModel
+import com.StartupBBSR.competo.ViewModel.fcmViewModel
+import com.StartupBBSR.competo.ViewModel.offlineDatabaseViewModel
+import com.StartupBBSR.competo.teamosDatabase.Database
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.annotations.NotNull
+import com.google.firebase.ktx.Firebase
+import java.util.*
+import kotlin.coroutines.coroutineContext
 
-import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.Person;
+class firebasemessagingservice : FirebaseMessagingService() {
 
-import com.StartupBBSR.competo.Activity.MainActivity;
-import com.StartupBBSR.competo.Fragments.EventMainFragment;
-import com.StartupBBSR.competo.R;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.annotations.NotNull;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.messaging.FirebaseMessagingService;
-import com.google.firebase.messaging.RemoteMessage;
+    val auth = Firebase.auth
 
-import java.util.Calendar;
-import java.util.Objects;
+    lateinit var offlineDatabaseViewModel: offlineDatabaseViewModel
 
-public class firebasemessagingservice extends FirebaseMessagingService {
+    override fun onMessageReceived(@NotNull remoteMessage: RemoteMessage) {
 
-    @Override
-    public void onMessageReceived(@NonNull @NotNull RemoteMessage remoteMessage) {
+        val senderId = remoteMessage.data["id"]
+        val receiverId = auth.uid.toString()
+        val category = remoteMessage.data["category"]
+        val timeStamp = remoteMessage.data["timeStamp"].toString().toLong()
+        val title = remoteMessage.data["title"]
+        val body = remoteMessage.data["body"]
+        val senderName = remoteMessage.data["senderName"]
+        val receiveTimestamp = System.currentTimeMillis().toString()
 
-        if(Objects.equals(remoteMessage.getData().get("category"), "event"))
+        val data = chatOfflineModel(0,senderId!!,senderName!!,receiverId,body!!,receiveTimestamp,timeStamp.toString(),
+            isSeen = false,
+            fcmSendStatus = true
+        )
+
+        when(category)
         {
-                geteventmessage(remoteMessage.getData().get("title"),remoteMessage.getData().get("body"));
+            "event" ->{
+                geteventmessage(title,body,senderId,receiverId,timeStamp,senderName)
+            }
+
+            "request" ->{
+                getrequestmessage(title,body,senderId,receiverId,timeStamp,senderName)
+            }
+
+            "chat" ->{
+                getchatmessage(title,body,senderId,receiverId,timeStamp,senderName)
+                Database.getDatabase(applicationContext).teamosDao().insertMessageData(data)
+            }
+
+            "team" ->{
+                getteammessage(title,body,senderId,receiverId,timeStamp,senderName)
+            }
         }
-        else if(Objects.equals(remoteMessage.getData().get("category"), "chat"))
-        {
-                getchatmessage(remoteMessage.getData().get("title"),remoteMessage.getData().get("body"),remoteMessage.getData().get("id"));
-        }
-        else if(Objects.equals(remoteMessage.getData().get("category"), "request"))
-        {
-                getrequestmessage(remoteMessage.getData().get("title"),remoteMessage.getData().get("body"));
-        }
-        else if(Objects.equals(remoteMessage.getData().get("category"), "team"))
-        {
-                getteammessage(remoteMessage.getData().get("title"),remoteMessage.getData().get("body"),remoteMessage.getData().get("teamId"));
-        }
-        super.onMessageReceived(remoteMessage);
+
+        super.onMessageReceived(remoteMessage)
     }
 
-    public void geteventmessage(String title, String body) {
-
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        NotificationManager notificationmanager1 = getSystemService(NotificationManager.class);
-
+    fun geteventmessage(title: String?, body: String?, senderId : String?, receiverId : String, timeStamp : Long, senderName : String?) {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+        val notificationmanager1 = getSystemService(
+            NotificationManager::class.java
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel1 = new NotificationChannel("event_notification", "Events", NotificationManager.IMPORTANCE_DEFAULT);
-            channel1.setDescription("this is fcm event channel");
-
-            notificationmanager1.createNotificationChannel(channel1);
+            val channel1 = NotificationChannel(
+                "event_notification",
+                "Events",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            channel1.description = "this is fcm event channel"
+            notificationmanager1.createNotificationChannel(channel1)
         }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "event_notification")
-                .setSmallIcon(R.drawable.teamos_one_point_four_logo)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
-
-        int oneTimeID = (int) SystemClock.uptimeMillis();
-        notificationmanager1.notify(oneTimeID, builder.build());
+        val builder = NotificationCompat.Builder(this, "event_notification")
+            .setSmallIcon(R.drawable.teamos_one_point_four_logo)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+        val oneTimeID = SystemClock.uptimeMillis().toInt()
+        notificationmanager1.notify(oneTimeID, builder.build())
     }
 
-    public void getrequestmessage(String title, String body) {
-
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        NotificationManager notificationmanager2 = getSystemService(NotificationManager.class);
-
+    fun getrequestmessage(title: String?, body: String?, senderId : String?, receiverId : String, timeStamp : Long, senderName : String?) {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+        val notificationmanager2 = getSystemService(
+            NotificationManager::class.java
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel2 = new NotificationChannel("request_notification", "Requests", NotificationManager.IMPORTANCE_DEFAULT);
-            channel2.setDescription("this is fcm request channel");
-
-            notificationmanager2.createNotificationChannel(channel2);
+            val channel2 = NotificationChannel(
+                "request_notification",
+                "Requests",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            channel2.description = "this is fcm request channel"
+            notificationmanager2.createNotificationChannel(channel2)
         }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "request_notification")
-                .setSmallIcon(R.drawable.teamos_one_point_four_logo)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
-
-        int oneTimeID = (int) SystemClock.uptimeMillis();
-        notificationmanager2.notify(oneTimeID, builder.build());
+        val builder = NotificationCompat.Builder(this, "request_notification")
+            .setSmallIcon(R.drawable.teamos_one_point_four_logo)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+        val oneTimeID = SystemClock.uptimeMillis().toInt()
+        notificationmanager2.notify(oneTimeID, builder.build())
     }
 
-    public void getchatmessage(String title, String body, String id) {
-
-        SharedPreferences sharedPreferences = getSharedPreferences(id,MODE_PRIVATE);
-        SharedPreferences.Editor myEdit = sharedPreferences.edit();
-        int count = sharedPreferences.getInt("chatCount",0);
-        int randomValue = (int) (Calendar.getInstance().getTimeInMillis() % 1000000000);
-        int chat_notification_id = sharedPreferences.getInt("chat_notification_id",0);
-        if(chat_notification_id == 0)
-        {
-            myEdit.putInt("chat_notification_id",randomValue);
+    fun getchatmessage(title: String?, body: String?,senderId : String?, receiverId : String, timeStamp : Long, senderName : String?) {
+        val sharedPreferences = getSharedPreferences(senderId, MODE_PRIVATE)
+        val myEdit = sharedPreferences.edit()
+        val count = sharedPreferences.getInt("chatCount", 0)
+        val randomValue = (Calendar.getInstance().timeInMillis % 1000000000).toInt()
+        val chat_notification_id = sharedPreferences.getInt("chat_notification_id", 0)
+        if (chat_notification_id == 0) {
+            myEdit.putInt("chat_notification_id", randomValue)
         }
-        if(count == 0)
-        {
-            myEdit.putString("chatMsg1",body);
-            myEdit.putInt("chatCount",1);
+        if (count == 0) {
+            myEdit.putString("chatMsg1", body)
+            myEdit.putInt("chatCount", 1)
+        } else if (count == 1) {
+            myEdit.putString("chatMsg2", body)
+            myEdit.putInt("chatCount", 2)
+        } else {
+            myEdit.putString("chatMsg1", sharedPreferences.getString("chatMsg2", null))
+            myEdit.putString("chatMsg2", body)
         }
-        else if(count == 1)
-        {
-            myEdit.putString("chatMsg2",body);
-            myEdit.putInt("chatCount",2);
-        }
-        else
-        {
-            myEdit.putString("chatMsg1",sharedPreferences.getString("chatMsg2",null));
-            myEdit.putString("chatMsg2",body);
-        }
-        myEdit.apply();
-
-        Person user = new Person.Builder().setIcon(null).setName("Chat").build();
-        NotificationCompat.MessagingStyle style = new NotificationCompat.MessagingStyle(user).addMessage(sharedPreferences.getString("chatMsg1",null), Calendar.getInstance().getTimeInMillis(),title)
-                .addMessage(sharedPreferences.getString("chatMsg2",null), Calendar.getInstance().getTimeInMillis(),title);
-
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        NotificationManager notificationmanager3 = getSystemService(NotificationManager.class);
-
+        myEdit.apply()
+        val user = Person.Builder().setIcon(null).setName("Chat").build()
+        val style = NotificationCompat.MessagingStyle(user).addMessage(
+            sharedPreferences.getString("chatMsg1", null),
+            Calendar.getInstance().timeInMillis,
+            title
+        )
+            .addMessage(
+                sharedPreferences.getString("chatMsg2", null),
+                Calendar.getInstance().timeInMillis,
+                title
+            )
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+        val notificationmanager3 = getSystemService(
+            NotificationManager::class.java
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel3 = new NotificationChannel("chat_notification", "Chats", NotificationManager.IMPORTANCE_DEFAULT);
-            channel3.setDescription("this is fcm chat channel");
-
-            notificationmanager3.createNotificationChannel(channel3);
+            val channel3 = NotificationChannel(
+                "chat_notification",
+                "Chats",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            channel3.description = "this is fcm chat channel"
+            notificationmanager3.createNotificationChannel(channel3)
         }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "chat_notification")
-                .setSmallIcon(R.drawable.teamos_one_point_four_logo)
-                .setStyle(style)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
+        val builder = NotificationCompat.Builder(this, "chat_notification")
+            .setSmallIcon(R.drawable.teamos_one_point_four_logo)
+            .setStyle(style)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
 
         //int oneTimeID = (int) SystemClock.uptimeMillis();
-        notificationmanager3.notify(sharedPreferences.getInt("chat_notification_id",0), builder.build());
+        notificationmanager3.notify(
+            sharedPreferences.getInt("chat_notification_id", 0),
+            builder.build()
+        )
     }
 
-    public void getteammessage(String title, String body, String id) {
-
-        SharedPreferences sharedPreferences = getSharedPreferences(id,MODE_PRIVATE);
-        SharedPreferences.Editor myEdit = sharedPreferences.edit();
-        int count = sharedPreferences.getInt("teamCount",0);
-        int randomValue = (int) (Calendar.getInstance().getTimeInMillis() % 1000000000);
-        int chat_notification_id = sharedPreferences.getInt("team_notification_id",0);
-        if(chat_notification_id == 0)
-        {
-            myEdit.putInt("team_notification_id",randomValue);
+    fun getteammessage(title: String?, body: String?, senderId : String?, receiverId : String, timeStamp : Long, senderName : String?) {
+        val sharedPreferences = getSharedPreferences(senderId, MODE_PRIVATE)
+        val myEdit = sharedPreferences.edit()
+        val count = sharedPreferences.getInt("teamCount", 0)
+        val randomValue = (Calendar.getInstance().timeInMillis % 1000000000).toInt()
+        val chat_notification_id = sharedPreferences.getInt("team_notification_id", 0)
+        if (chat_notification_id == 0) {
+            myEdit.putInt("team_notification_id", randomValue)
         }
-        if(count == 0)
-        {
-            myEdit.putString("teamMsg1",body);
-            myEdit.putString("teamTitle1",title);
-            myEdit.putInt("teamCount",1);
+        if (count == 0) {
+            myEdit.putString("teamMsg1", body)
+            myEdit.putString("teamTitle1", title)
+            myEdit.putInt("teamCount", 1)
+        } else if (count == 1) {
+            myEdit.putString("teamMsg2", body)
+            myEdit.putString("teamTitle2", title)
+            myEdit.putInt("teamCount", 2)
+        } else if (count == 2) {
+            myEdit.putString("teamMsg3", body)
+            myEdit.putString("teamTitle3", title)
+            myEdit.putInt("teamCount", 3)
+        } else {
+            myEdit.putString("teamMsg1", sharedPreferences.getString("teamMsg2", null))
+            myEdit.putString("teamMsg2", sharedPreferences.getString("teamMsg3", null))
+            myEdit.putString("teamMsg3", body)
+            myEdit.putString("teamTitle1", sharedPreferences.getString("teamTitle2", null))
+            myEdit.putString("teamTitle2", sharedPreferences.getString("teamTitle3", null))
+            myEdit.putString("teamTitle3", title)
         }
-        else if(count == 1)
-        {
-            myEdit.putString("teamMsg2",body);
-            myEdit.putString("teamTitle2",title);
-            myEdit.putInt("teamCount",2);
-        }
-        else if(count == 2)
-        {
-            myEdit.putString("teamMsg3",body);
-            myEdit.putString("teamTitle3",title);
-            myEdit.putInt("teamCount",3);
-        }
-        else
-        {
-            myEdit.putString("teamMsg1",sharedPreferences.getString("teamMsg2",null));
-            myEdit.putString("teamMsg2",sharedPreferences.getString("teamMsg3",null));
-            myEdit.putString("teamMsg3",body);
-
-            myEdit.putString("teamTitle1",sharedPreferences.getString("teamTitle2",null));
-            myEdit.putString("teamTitle2",sharedPreferences.getString("teamTitle3",null));
-            myEdit.putString("teamTitle3",title);
-        }
-        myEdit.apply();
-
-        Person user = new Person.Builder().setIcon(null).setName("Teams").build();
-        NotificationCompat.MessagingStyle style = new NotificationCompat.MessagingStyle(user).addMessage(sharedPreferences.getString("teamMsg1",null), Calendar.getInstance().getTimeInMillis(),sharedPreferences.getString("teamTitle1",null))
-                .addMessage(sharedPreferences.getString("teamMsg2",null), Calendar.getInstance().getTimeInMillis(),sharedPreferences.getString("teamTitle2",null))
-                .addMessage(sharedPreferences.getString("teamMsg3",null), Calendar.getInstance().getTimeInMillis(),sharedPreferences.getString("teamTitle3",null));
-
-
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        NotificationManager notificationmanager4 = getSystemService(NotificationManager.class);
-
+        myEdit.apply()
+        val user = Person.Builder().setIcon(null).setName("Teams").build()
+        val style = NotificationCompat.MessagingStyle(user).addMessage(
+            sharedPreferences.getString("teamMsg1", null),
+            Calendar.getInstance().timeInMillis,
+            sharedPreferences.getString("teamTitle1", null)
+        )
+            .addMessage(
+                sharedPreferences.getString("teamMsg2", null),
+                Calendar.getInstance().timeInMillis,
+                sharedPreferences.getString("teamTitle2", null)
+            )
+            .addMessage(
+                sharedPreferences.getString("teamMsg3", null),
+                Calendar.getInstance().timeInMillis,
+                sharedPreferences.getString("teamTitle3", null)
+            )
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+        val notificationmanager4 = getSystemService(
+            NotificationManager::class.java
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel4 = new NotificationChannel("team_notification", "Teams", NotificationManager.IMPORTANCE_DEFAULT);
-            channel4.setDescription("this is fcm team channel");
-
-            notificationmanager4.createNotificationChannel(channel4);
+            val channel4 = NotificationChannel(
+                "team_notification",
+                "Teams",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            channel4.description = "this is fcm team channel"
+            notificationmanager4.createNotificationChannel(channel4)
         }
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "team_notification")
-                .setSmallIcon(R.drawable.teamos_one_point_four_logo)
-                .setStyle(style)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
+        val builder = NotificationCompat.Builder(this, "team_notification")
+            .setSmallIcon(R.drawable.teamos_one_point_four_logo)
+            .setStyle(style)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
 
         //int oneTimeID = (int) SystemClock.uptimeMillis();
-        notificationmanager4.notify(sharedPreferences.getInt("team_notification_id",0), builder.build());
+        notificationmanager4.notify(
+            sharedPreferences.getInt("team_notification_id", 0),
+            builder.build()
+        )
     }
 }

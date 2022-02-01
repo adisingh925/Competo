@@ -373,39 +373,4 @@ class ChatDetailActivity : AppCompatActivity() {
     private fun status(status: String) {
         userRef!!.update("status", status)
     }
-
-//    fun sendfcm(token: String?, message: String, name: String?) {
-//        val runnable = Runnable {
-//            val client = OkHttpClient()
-//            val JSON = MediaType.parse("application/json; charset=utf-8")
-//            val body = RequestBody.create(
-//                JSON, """{
-//    "data" : {
-//      "id" : "$senderID",
-//      "category" : "chat",
-//      "title":"$name",
-//      "body":"$message"
-//    },
-//    "to":"$token"
-//}"""
-//            )
-//            val request = Request.Builder()
-//                .url("https://fcm.googleapis.com/fcm/send")
-//                .post(body)
-//                .addHeader("Content-Type", "application/json")
-//                .addHeader(
-//                    "Authorization",
-//                    "key=AAAABmOW__8:APA91bFEiWxr4rRQa3M_5n-w-5XDjLnQ9nf2IgAs1r0ppfwgTLZoGgOJmRAF1pt59hHqdMZ74AmAx1lkk0HaCuLwUCsHi_M_BWEZAGwkXyp-57YJk_pGmGWwJKNEU_bnJLl7bv7VDPzy"
-//                )
-//                .build()
-//            try {
-//                val response = client.newCall(request).execute()
-//                Log.d("response", response.toString())
-//            } catch (e: IOException) {
-//                e.printStackTrace()
-//            }
-//        }
-//        val thread = Thread(runnable)
-//        thread.start()
-//    }
 }
