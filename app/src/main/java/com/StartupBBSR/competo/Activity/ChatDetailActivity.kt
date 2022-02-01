@@ -18,6 +18,8 @@ import android.view.View
 import com.StartupBBSR.competo.R
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.widget.AbsListView
+import androidx.lifecycle.ViewModelProvider
+import com.StartupBBSR.competo.ViewModel.fcmViewModel
 import com.StartupBBSR.competo.databinding.ActivityChatDetailBinding
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.*
@@ -59,6 +61,11 @@ class ChatDetailActivity : AppCompatActivity() {
     private var userMessageNumberRef: DocumentReference? = null
     private var seenRef1: CollectionReference? = null
     private var seenRef2: CollectionReference? = null
+
+
+    //viewmodel
+    lateinit var fcmViewModel: fcmViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val pref = applicationContext.getSharedPreferences("MyPref", MODE_PRIVATE)
         val editor = pref.edit()
@@ -67,6 +74,10 @@ class ChatDetailActivity : AppCompatActivity() {
             layoutInflater
         )
         setContentView(binding!!.root)
+
+        //initialize fcmviewmodel
+        fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
+
         firebaseAuth = FirebaseAuth.getInstance()
         firestoreDB = FirebaseFirestore.getInstance()
         constant = Constant()
@@ -130,42 +141,7 @@ class ChatDetailActivity : AppCompatActivity() {
                                             .document(receiverID!!)
                                             .update("time", timestamp)
                                     }
-                                firestoreDB!!.collection("token").document(receiverID!!).get()
-                                    .addOnCompleteListener { task: Task<DocumentSnapshot> ->
-                                        if (task.isSuccessful) {
-                                            val document = task.result
-                                            if (document.exists()) {
-                                                Log.d(
-                                                    "data",
-                                                    "DocumentSnapshot data: " + document.getString("token")
-                                                )
-                                                firestoreDB!!.collection("Users")
-                                                    .document(senderID!!).get()
-                                                    .addOnCompleteListener { task3: Task<DocumentSnapshot> ->
-                                                        if (task3.isSuccessful) {
-                                                            val document3 = task3.result
-                                                            if (document3.exists()) {
-                                                                Log.d(
-                                                                    "data",
-                                                                    "DocumentSnapshot data: " + document3.getString(
-                                                                        "Name"
-                                                                    )
-                                                                )
-                                                                sendfcm(
-                                                                    document.getString("token"),
-                                                                    message,
-                                                                    document3.getString("Name")
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                            } else {
-                                                Log.d("data", "No such document")
-                                            }
-                                        } else {
-                                            Log.d("data", "get failed with ", task.exception)
-                                        }
-                                    }
+                                fcmViewModel.notification(receiverID!!,senderID!!,message,"chat","NR",timestamp)
                             }.addOnFailureListener {
                                 Toast.makeText(
                                     this@ChatDetailActivity,
@@ -398,38 +374,38 @@ class ChatDetailActivity : AppCompatActivity() {
         userRef!!.update("status", status)
     }
 
-    fun sendfcm(token: String?, message: String, name: String?) {
-        val runnable = Runnable {
-            val client = OkHttpClient()
-            val JSON = MediaType.parse("application/json; charset=utf-8")
-            val body = RequestBody.create(
-                JSON, """{
-    "data" : {
-      "id" : "$senderID",
-      "category" : "chat",
-      "title":"$name",
-      "body":"$message"
-    },
-    "to":"$token"
-}"""
-            )
-            val request = Request.Builder()
-                .url("https://fcm.googleapis.com/fcm/send")
-                .post(body)
-                .addHeader("Content-Type", "application/json")
-                .addHeader(
-                    "Authorization",
-                    "key=AAAABmOW__8:APA91bFEiWxr4rRQa3M_5n-w-5XDjLnQ9nf2IgAs1r0ppfwgTLZoGgOJmRAF1pt59hHqdMZ74AmAx1lkk0HaCuLwUCsHi_M_BWEZAGwkXyp-57YJk_pGmGWwJKNEU_bnJLl7bv7VDPzy"
-                )
-                .build()
-            try {
-                val response = client.newCall(request).execute()
-                Log.d("response", response.toString())
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-        val thread = Thread(runnable)
-        thread.start()
-    }
+//    fun sendfcm(token: String?, message: String, name: String?) {
+//        val runnable = Runnable {
+//            val client = OkHttpClient()
+//            val JSON = MediaType.parse("application/json; charset=utf-8")
+//            val body = RequestBody.create(
+//                JSON, """{
+//    "data" : {
+//      "id" : "$senderID",
+//      "category" : "chat",
+//      "title":"$name",
+//      "body":"$message"
+//    },
+//    "to":"$token"
+//}"""
+//            )
+//            val request = Request.Builder()
+//                .url("https://fcm.googleapis.com/fcm/send")
+//                .post(body)
+//                .addHeader("Content-Type", "application/json")
+//                .addHeader(
+//                    "Authorization",
+//                    "key=AAAABmOW__8:APA91bFEiWxr4rRQa3M_5n-w-5XDjLnQ9nf2IgAs1r0ppfwgTLZoGgOJmRAF1pt59hHqdMZ74AmAx1lkk0HaCuLwUCsHi_M_BWEZAGwkXyp-57YJk_pGmGWwJKNEU_bnJLl7bv7VDPzy"
+//                )
+//                .build()
+//            try {
+//                val response = client.newCall(request).execute()
+//                Log.d("response", response.toString())
+//            } catch (e: IOException) {
+//                e.printStackTrace()
+//            }
+//        }
+//        val thread = Thread(runnable)
+//        thread.start()
+//    }
 }

@@ -92,7 +92,7 @@ class ProjectMainFragment : Fragment() {
 
         fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
 
-        //messagingViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2")
+        fcmViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2","request","New Message Request",System.currentTimeMillis())
 
         return binding.root
     }
@@ -274,7 +274,7 @@ class ProjectMainFragment : Fragment() {
                         sendMessageBottomDialog.dismiss();
 
                         //send message request
-                        fcmViewModel.notification(organizerID,userID,requestMessage)
+                        fcmViewModel.notification(organizerID,userID,requestMessage,"request","New Message Request",System.currentTimeMillis())
                     }
                     .addOnFailureListener {
                         Toast.makeText(context, "Error sending request", Toast.LENGTH_SHORT).show()

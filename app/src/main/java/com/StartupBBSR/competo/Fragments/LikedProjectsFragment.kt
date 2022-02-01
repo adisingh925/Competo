@@ -212,7 +212,7 @@ class LikedProjectsFragment : Fragment() {
                         sendMessageBottomDialog.dismiss();
 
                         //send notification
-                        fcmViewModel.notification(organizerID,userID,requestMessage)
+                        fcmViewModel.notification(organizerID,userID,requestMessage,"request","New Message Request", System.currentTimeMillis())
                     }
                     .addOnFailureListener {
                         Toast.makeText(context, "Error sending request", Toast.LENGTH_SHORT).show()
