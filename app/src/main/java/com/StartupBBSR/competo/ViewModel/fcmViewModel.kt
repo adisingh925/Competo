@@ -14,13 +14,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-class messagingViewModel : ViewModel() {
+class fcmViewModel : ViewModel() {
 
     val auth = Firebase.auth
 
     val firebaseDB = Firebase.firestore
 
-    fun notification(receiverID : String, senderID : String, requestMessage : String)
+    fun notification(receiverID : String, senderID : String, Message : String, category : String, title : String, timeStamp : Long)
     {
         viewModelScope.launch(Dispatchers.IO) {
             val token = firebaseDB.collection("token").document(receiverID).get()
@@ -43,7 +43,7 @@ class messagingViewModel : ViewModel() {
                                 if(name.exists())
                                 {
                                     val senderName = name.getString("Name")
-                                    sendMessage(receiverToken!!,senderName!!,requestMessage)
+                                    sendMessage(receiverToken!!,senderName!!,Message,category,title,timeStamp)
                                 }
                             }
                             else{
@@ -59,7 +59,7 @@ class messagingViewModel : ViewModel() {
         }
     }
 
-    fun sendMessage(token : String, name : String, requestMessage : String)
+    fun sendMessage(token : String, senderName : String, Message : String, category : String, title : String, timeStamp: Long)
     {
         viewModelScope.launch(Dispatchers.IO) {
             val client = OkHttpClient()
@@ -68,9 +68,11 @@ class messagingViewModel : ViewModel() {
                 JSON, """{
                                 "data" : {
                                 "id" : "${auth.uid.toString()}"
-                                "category" : "request",
-                                "title" : "New Message Request"
-                                "body" : "$name : $requestMessage"
+                                "category" : "$category",
+                                "title" : "$title"
+                                "senderName" : "$senderName"
+                                "body" : "$Message"
+                                "timeStamp" : "$timeStamp"
                                 },
                                 "to":"$token"
                                 }"""

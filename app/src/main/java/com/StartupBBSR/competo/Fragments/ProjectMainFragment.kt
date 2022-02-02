@@ -9,11 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
-import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
@@ -24,13 +22,10 @@ import com.StartupBBSR.competo.Adapters.ProjectAdapter
 import com.StartupBBSR.competo.Models.ProjectModel
 import com.StartupBBSR.competo.Models.RequestModel
 import com.StartupBBSR.competo.R
-import com.StartupBBSR.competo.R.layout.fragment_liked_projects
 import com.StartupBBSR.competo.R.layout.project_bottom_dialog
 import com.StartupBBSR.competo.Utils.Constant
-import com.StartupBBSR.competo.ViewModel.messagingViewModel
+import com.StartupBBSR.competo.ViewModel.fcmViewModel
 import com.StartupBBSR.competo.databinding.FragmentProjectMainBinding
-import com.StartupBBSR.competo.databinding.ProjectBottomDialogBinding
-import com.google.android.gms.tasks.Task
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -39,7 +34,6 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.getField
 import com.google.firebase.firestore.ktx.toObject
 import java.util.*
 import kotlin.collections.ArrayList
@@ -65,7 +59,7 @@ class ProjectMainFragment : Fragment() {
     private var isFabOpen: Boolean = false
 
     //messaging viewmodel
-    lateinit var messagingViewModel: messagingViewModel
+    lateinit var fcmViewModel: fcmViewModel
 
     private val rotation = 180
 
@@ -96,9 +90,9 @@ class ProjectMainFragment : Fragment() {
 
         projectList = ArrayList()
 
-        messagingViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.messagingViewModel::class.java)
+        fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
 
-        //messagingViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2")
+        fcmViewModel.notification("UbIkDkNJoXPlsW81HjyjA7acM393","UbIkDkNJoXPlsW81HjyjA7acM393","this is a test2","chat","New Message Request",System.currentTimeMillis())
 
         return binding.root
     }
@@ -280,7 +274,7 @@ class ProjectMainFragment : Fragment() {
                         sendMessageBottomDialog.dismiss();
 
                         //send message request
-                        messagingViewModel.notification(organizerID,userID,requestMessage)
+                        fcmViewModel.notification(organizerID,userID,requestMessage,"request","New Message Request",System.currentTimeMillis())
                     }
                     .addOnFailureListener {
                         Toast.makeText(context, "Error sending request", Toast.LENGTH_SHORT).show()
