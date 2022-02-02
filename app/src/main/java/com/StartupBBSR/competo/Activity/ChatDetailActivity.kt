@@ -107,61 +107,22 @@ class ChatDetailActivity : AppCompatActivity() {
         binding!!.btnSendChat.setOnClickListener {
             if (binding!!.etMessage.text.toString().trim { it <= ' ' } != "") {
                 val message = binding!!.etMessage.text.toString().trim { it <= ' ' }
-                val timestamp = Date().time
-                messageModel = MessageModel(senderID, receiverID, message, timestamp)
-                messageModel!!.seen = false
+//                val timestamp = Date().time
+//                messageModel = MessageModel(senderID, receiverID, message, timestamp)
+//                messageModel!!.seen = false
                 binding!!.etMessage.setText("")
 
-//                    Show progress bar
+//              Show progress bar
                 binding!!.btnSendChat.visibility = View.INVISIBLE
                 binding!!.sendMessageProgressBar.visibility = View.VISIBLE
-                firestoreDB!!.collection(constant!!.chats)
-                    .document(senderID!!)
-                    .collection(constant!!.messages)
-                    .document(receiverID!!)
-                    .collection(constant!!.messages)
-                    .add(messageModel!!)
-                    .addOnSuccessListener {
-                        firestoreDB!!.collection(constant!!.chats)
-                            .document(receiverID!!)
-                            .collection(constant!!.messages)
-                            .document(senderID!!)
-                            .collection(constant!!.messages)
-                            .add(messageModel!!)
-                            .addOnSuccessListener { //                                                    Message send
-                                binding!!.btnSendChat.visibility = View.VISIBLE
-                                binding!!.sendMessageProgressBar.visibility = View.GONE
 
-//                                                    Updating timestamp of users for sorting
-                                firestoreDB!!.collection(constant!!.users)
-                                    .document(senderID!!)
-                                    .update("time", timestamp)
-                                    .addOnCompleteListener {
-                                        firestoreDB!!.collection(constant!!.users)
-                                            .document(receiverID!!)
-                                            .update("time", timestamp)
-                                    }
-                                fcmViewModel.notification(receiverID!!,senderID!!,message,"chat","NR",timestamp)
-                            }.addOnFailureListener {
-                                Toast.makeText(
-                                    this@ChatDetailActivity,
-                                    "Could not deliver message",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                binding!!.btnSendChat.visibility = View.VISIBLE
-                                binding!!.sendMessageProgressBar.visibility = View.GONE
-                            }
-                    }.addOnFailureListener {
-                        Toast.makeText(
-                            this@ChatDetailActivity,
-                            "Could not send message",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        binding!!.btnSendChat.visibility = View.VISIBLE
-                        binding!!.sendMessageProgressBar.visibility = View.GONE
-                    }
+                fcmViewModel.notification(receiverID!!,senderID!!,message,"chat","NR",System.currentTimeMillis())
+
+                binding!!.btnSendChat.visibility = View.VISIBLE
+                binding!!.sendMessageProgressBar.visibility = View.INVISIBLE
             }
         }
+
 
 //        For read receipts
         seenRef1 = firestoreDB!!.collection(constant!!.chats)

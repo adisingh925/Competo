@@ -146,12 +146,12 @@ class firebasemessagingservice : FirebaseMessagingService() {
         val style = NotificationCompat.MessagingStyle(user).addMessage(
             sharedPreferences.getString("chatMsg1", null),
             Calendar.getInstance().timeInMillis,
-            title
+            senderName
         )
             .addMessage(
                 sharedPreferences.getString("chatMsg2", null),
                 Calendar.getInstance().timeInMillis,
-                title
+                senderName
             )
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
