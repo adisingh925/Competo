@@ -185,7 +185,7 @@ class ChatDetailActivity : AppCompatActivity() {
                     ) {
                         (mMessage as ArrayList<MessageModel?>).add(model)
                     }
-                    newChatAdapter = NewChatAdapter(this@ChatDetailActivity, mMessage)
+                    newChatAdapter = NewChatAdapter(this@ChatDetailActivity)
                     recyclerView!!.adapter = newChatAdapter
 
 //                    Pagination
