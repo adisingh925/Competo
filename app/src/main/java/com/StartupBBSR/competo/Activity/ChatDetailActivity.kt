@@ -19,7 +19,9 @@ import com.StartupBBSR.competo.R
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.widget.AbsListView
 import androidx.lifecycle.ViewModelProvider
+import com.StartupBBSR.competo.Models.chatOfflineModel
 import com.StartupBBSR.competo.ViewModel.fcmViewModel
+import com.StartupBBSR.competo.ViewModel.offlineDatabaseViewModel
 import com.StartupBBSR.competo.databinding.ActivityChatDetailBinding
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.*
@@ -66,6 +68,8 @@ class ChatDetailActivity : AppCompatActivity() {
     //viewmodel
     lateinit var fcmViewModel: fcmViewModel
 
+    lateinit var offlineDatabaseViewModel: offlineDatabaseViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val pref = applicationContext.getSharedPreferences("MyPref", MODE_PRIVATE)
         val editor = pref.edit()
@@ -75,8 +79,20 @@ class ChatDetailActivity : AppCompatActivity() {
         )
         setContentView(binding!!.root)
 
+        //initialize recyclerview
+        initNewRecycler()
+
         //initialize fcmviewmodel
         fcmViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.fcmViewModel::class.java)
+
+        offlineDatabaseViewModel = ViewModelProvider(this).get(com.StartupBBSR.competo.ViewModel.offlineDatabaseViewModel::class.java)
+
+        offlineDatabaseViewModel.readAllMessages.observe(this)
+        {
+            data ->
+            newChatAdapter?.setdata(data)
+            recyclerView?.scrollToPosition(data.size - 1)
+        }
 
         firebaseAuth = FirebaseAuth.getInstance()
         firestoreDB = FirebaseFirestore.getInstance()
@@ -120,6 +136,8 @@ class ChatDetailActivity : AppCompatActivity() {
 
                 binding!!.btnSendChat.visibility = View.VISIBLE
                 binding!!.sendMessageProgressBar.visibility = View.INVISIBLE
+
+                offlineDatabaseViewModel.insertMessageData(chatOfflineModel(0,senderID!!,"Aditya",receiverID!!,message,System.currentTimeMillis().toString(),System.currentTimeMillis().toString(),false,true))
             }
         }
 
@@ -168,8 +186,8 @@ class ChatDetailActivity : AppCompatActivity() {
         recyclerView = binding!!.chatRecyclerView
         recyclerView!!.setHasFixedSize(true)
         val linearLayoutManager = LinearLayoutManager(applicationContext)
-        linearLayoutManager.stackFromEnd = false
-        linearLayoutManager.reverseLayout = true
+        linearLayoutManager.stackFromEnd = true
+        linearLayoutManager.reverseLayout = false
         recyclerView!!.layoutManager = linearLayoutManager
     }
 
