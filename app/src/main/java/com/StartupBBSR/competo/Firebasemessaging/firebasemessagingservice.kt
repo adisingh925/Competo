@@ -43,8 +43,7 @@ class firebasemessagingservice : FirebaseMessagingService() {
         val receiveTimestamp = System.currentTimeMillis().toString()
 
         val data = chatOfflineModel(0,senderId!!,senderName!!,receiverId,body!!,receiveTimestamp,timeStamp.toString(),
-            isSeen = false,
-            fcmSendStatus = true
+            isSeen = false,"pending"
         )
 
         when(category)

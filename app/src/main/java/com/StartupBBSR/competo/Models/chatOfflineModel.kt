@@ -14,5 +14,5 @@ data class chatOfflineModel(
     @ColumnInfo(name = "receiveTime") val receiveTime : String,
     @ColumnInfo(name = "sendTime") val sendTime : String,
     @ColumnInfo(name = "isSeen") val isSeen : Boolean,
-    @ColumnInfo(name = "fcmSendStatus") val fcmSendStatus : Boolean,
+    @ColumnInfo(name = "fcmSendStatus") val fcmSendStatus : String,
 )

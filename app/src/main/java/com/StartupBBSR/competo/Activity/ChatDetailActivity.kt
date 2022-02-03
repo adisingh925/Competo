@@ -64,7 +64,6 @@ class ChatDetailActivity : AppCompatActivity() {
     private var seenRef1: CollectionReference? = null
     private var seenRef2: CollectionReference? = null
 
-
     //viewmodel
     lateinit var fcmViewModel: fcmViewModel
 
@@ -137,27 +136,11 @@ class ChatDetailActivity : AppCompatActivity() {
                 binding!!.btnSendChat.visibility = View.VISIBLE
                 binding!!.sendMessageProgressBar.visibility = View.INVISIBLE
 
-                offlineDatabaseViewModel.insertMessageData(chatOfflineModel(0,senderID!!,"Aditya",receiverID!!,message,System.currentTimeMillis().toString(),System.currentTimeMillis().toString(),false,true))
+                offlineDatabaseViewModel.insertMessageData(chatOfflineModel(0,senderID!!,"Aditya",receiverID!!,message,System.currentTimeMillis().toString(),System.currentTimeMillis().toString(),false,"pending"))
+                initNewRecycler()
             }
         }
 
-
-//        For read receipts
-        seenRef1 = firestoreDB!!.collection(constant!!.chats)
-            .document(senderID!!)
-            .collection(constant!!.messages)
-            .document(receiverID!!)
-            .collection(constant!!.messages)
-        seenRef2 = firestoreDB!!.collection(constant!!.chats)
-            .document(receiverID!!)
-            .collection(constant!!.messages)
-            .document(senderID!!)
-            .collection(constant!!.messages)
-        seenMessage(senderID, receiverID)
-        if (isSeenlistenerRegistration1 == null && isSeenlistenerRegistration2 == null) {
-            isSeenlistenerRegistration1 = seenRef1!!.addSnapshotListener(eventListener1!!)
-            isSeenlistenerRegistration2 = seenRef2!!.addSnapshotListener(eventListener2!!)
-        }
         initNewRecycler()
     }
 
@@ -265,37 +248,6 @@ class ChatDetailActivity : AppCompatActivity() {
             }
     }
 
-    private fun seenMessage(senderID: String?, receiverID: String?) {
-        eventListener1 = EventListener { value, error ->
-            if (error != null) {
-                Log.w("error", "Listen failed.", error)
-                return@EventListener
-            }
-            for (snapshot in value!!) {
-                val messageModel = snapshot.toObject(
-                    MessageModel::class.java
-                )
-                if (messageModel.receiverID == senderID && messageModel.senderID == receiverID) {
-                    snapshot.reference.update("seen", true)
-                }
-            }
-        }
-        eventListener2 = EventListener { value, error ->
-            if (error != null) {
-                Log.w("error", "Listen failed.", error)
-                return@EventListener
-            }
-            for (snapshot in value!!) {
-                val messageModel = snapshot.toObject(
-                    MessageModel::class.java
-                )
-                if (messageModel.receiverID == senderID && messageModel.senderID == receiverID) {
-                    snapshot.reference.update("seen", true)
-                }
-            }
-        }
-    }
-
     override fun onStart() {
         super.onStart()
         collectionReference!!.addSnapshotListener(EventListener { value, error ->
@@ -323,18 +275,10 @@ class ChatDetailActivity : AppCompatActivity() {
                 }
             }
         })
-        isSeenlistenerRegistration1 = seenRef1!!.addSnapshotListener(eventListener1!!)
-        isSeenlistenerRegistration2 = seenRef2!!.addSnapshotListener(eventListener2!!)
     }
 
     public override fun onStop() {
         super.onStop()
-        if (isSeenlistenerRegistration1 != null) {
-            isSeenlistenerRegistration1!!.remove()
-        }
-        if (isSeenlistenerRegistration2 != null) {
-            isSeenlistenerRegistration2!!.remove()
-        }
     }
 
     override fun onPause() {

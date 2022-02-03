@@ -1,24 +1,17 @@
 package com.StartupBBSR.competo.Adapters
 
 import android.content.Context
-import com.StartupBBSR.competo.Models.MessageModel
-import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.auth.FirebaseUser
-import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.LinearLayout
-import android.widget.RelativeLayout
-import com.google.firebase.auth.FirebaseAuth
+import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.view.isVisible
+import androidx.recyclerview.widget.RecyclerView
 import com.StartupBBSR.competo.Models.chatOfflineModel
 import com.StartupBBSR.competo.R
 import com.StartupBBSR.competo.databinding.ReceiverTextItemBinding
 import com.StartupBBSR.competo.databinding.SenderTextItemBinding
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import org.w3c.dom.Text
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,7 +39,7 @@ class NewChatAdapter(private val context: Context) : RecyclerView.Adapter<Recycl
             // This method will be called anytime a list item is created or update its data
             //Do your stuff here
             senderTextView.text = messageList[position].msg
-            senderSeen.text = "false"
+            senderSeen.text = messageList[position].fcmSendStatus
             senderTime.text = messageList[position].sendTime
         }
     }
@@ -59,8 +52,9 @@ class NewChatAdapter(private val context: Context) : RecyclerView.Adapter<Recycl
         internal fun bind(position: Int) {
             // This method will be called anytime a list item is created or update its data
             //Do your stuff here
+            val time = getDate(messageList[position].receiveTime.toLong(), "dd/MM/yyyy hh:mm aa")
             receiverTextView.text = messageList[position].msg
-            receiverTime.text = messageList[position].receiveTime
+            receiverTime.text = time
         }
     }
 
@@ -94,6 +88,16 @@ class NewChatAdapter(private val context: Context) : RecyclerView.Adapter<Recycl
     {
         this.messageList = data
         notifyDataSetChanged()
+    }
+
+    fun getDate(milliSeconds: Long, dateFormat: String?): String? {
+        // Create a DateFormatter object for displaying date in specified format.
+        val formatter = SimpleDateFormat(dateFormat)
+
+        // Create a calendar object that will convert the date and time value in milliseconds to date.
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = milliSeconds
+        return formatter.format(calendar.time)
     }
 
 }
